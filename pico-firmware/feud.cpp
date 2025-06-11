@@ -65,11 +65,6 @@ void Feud::led_init() {
     gpio_set_dir(PLAYER_B_LED_PIN, GPIO_OUT);
     gpio_put(PLAYER_B_LED_PIN, 0);
     
-    // TODO: Initialize WS2812 LED strip for timer visualization
-    // For now, we'll use a simple GPIO pin
-    gpio_init(TIMER_LED_STRIP_PIN);
-    gpio_set_dir(TIMER_LED_STRIP_PIN, GPIO_OUT);
-    gpio_put(TIMER_LED_STRIP_PIN, 0);
 }
 
 void Feud::update() {
@@ -120,7 +115,6 @@ void Feud::update_leds() {
         case GameState::IDLE:
             gpio_put(PLAYER_A_LED_PIN, 0);
             gpio_put(PLAYER_B_LED_PIN, 0);
-            gpio_put(TIMER_LED_STRIP_PIN, 0);
             break;
             
         case GameState::TIMER_RUNNING:
@@ -130,7 +124,6 @@ void Feud::update_leds() {
                 bool flash_on = (current_time / 250) % 2; // Flash every 250ms
                 gpio_put(PLAYER_A_LED_PIN, flash_on ? 1 : 0);
                 gpio_put(PLAYER_B_LED_PIN, flash_on ? 1 : 0);
-                gpio_put(TIMER_LED_STRIP_PIN, 1); // Timer indicator on
             }
             break;
             
@@ -141,20 +134,17 @@ void Feud::update_leds() {
                 bool flash_on = (current_time / 1000) % 2; // Flash every 1 second
                 gpio_put(PLAYER_A_LED_PIN, flash_on ? 1 : 0);
                 gpio_put(PLAYER_B_LED_PIN, flash_on ? 1 : 0);
-                gpio_put(TIMER_LED_STRIP_PIN, flash_on ? 1 : 0);
             }
             break;
             
         case GameState::PLAYER_A_PRESSED:
             gpio_put(PLAYER_A_LED_PIN, 1);
             gpio_put(PLAYER_B_LED_PIN, 0);
-            gpio_put(TIMER_LED_STRIP_PIN, 0);
             break;
             
         case GameState::PLAYER_B_PRESSED:
             gpio_put(PLAYER_A_LED_PIN, 0);
             gpio_put(PLAYER_B_LED_PIN, 1);
-            gpio_put(TIMER_LED_STRIP_PIN, 0);
             break;
     }
 }
@@ -341,7 +331,6 @@ void Feud::force_reset() {
     // Reset all LEDs
     gpio_put(PLAYER_A_LED_PIN, 0);
     gpio_put(PLAYER_B_LED_PIN, 0);
-    gpio_put(TIMER_LED_STRIP_PIN, 0);
     
     // Clear all LED strips on force reset and restart rainbow animation
     WS2812Controller& ws2812 = WS2812Controller::instance();

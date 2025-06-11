@@ -14,7 +14,6 @@ constexpr uint PLAYER_A_BUTTON_PIN = 2;
 constexpr uint PLAYER_B_BUTTON_PIN = 3;
 constexpr uint PLAYER_A_LED_PIN = 4;
 constexpr uint PLAYER_B_LED_PIN = 5;
-constexpr uint TIMER_LED_STRIP_PIN = 6; // For WS2812 or similar
 
 enum class GameState {
     IDLE,
