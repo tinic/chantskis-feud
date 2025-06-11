@@ -1,6 +1,7 @@
 #include "command_handler.h"
 #include "usb_serial.h"
 #include "feud.h"
+#include "ws2812_controller.h"
 #include <cstring>
 #include <cctype>
 #include <algorithm>
@@ -38,7 +39,7 @@ void CommandHandler::handle_line(std::string_view line) {
     
     auto [command, args] = *parsed;
     
-    auto cmd_it = std::ranges::find_if(commands, [this, command](const Command& cmd) {
+    auto cmd_it = std::ranges::find_if(commands, [command](const Command& cmd) {
         return str_equal_case_insensitive(cmd.name, command);
     });
     
@@ -127,6 +128,12 @@ void CommandHandler::cmd_help([[maybe_unused]] std::string_view args) {
         std::string_view{"  resume_timer       - Resume paused timer\n"},
         std::string_view{"  reset_game         - Reset game state\n"},
         std::string_view{"  force_reset        - Complete system reset\n"},
+        std::string_view{"  led_set <strip> <led> <r> <g> <b> - Set single LED\n"},
+        std::string_view{"  led_strip <strip> <r> <g> <b>     - Set entire strip\n"},
+        std::string_view{"  led_all <r> <g> <b>                - Set all LEDs\n"},
+        std::string_view{"  led_clear [strip]                  - Clear LEDs\n"},
+        std::string_view{"  led_animate <mode> [speed]         - Set animation\n"},
+        std::string_view{"  led_brightness <0-100>             - Set brightness\n"},
         std::string_view{"  help               - Show this help\n"}
     };
     
@@ -222,7 +229,7 @@ void CommandHandler::cmd_force_reset([[maybe_unused]] std::string_view args) {
     serial.send_data(reinterpret_cast<const uint8_t*>(response.data()), response.size());
 }
 
-constexpr bool CommandHandler::str_equal_case_insensitive(std::string_view a, std::string_view b) const noexcept {
+constexpr bool CommandHandler::str_equal_case_insensitive(std::string_view a, std::string_view b) noexcept {
     return std::ranges::equal(a, b, [](char ca, char cb) {
         return std::tolower(ca) == std::tolower(cb);
     });
@@ -260,4 +267,298 @@ CommandHandler::parse_command_line(std::string_view line) const noexcept {
     auto args = trim_whitespace(line.substr(space_pos + 1));
     
     return std::make_pair(command, args);
+}
+
+void CommandHandler::cmd_led_set(std::string_view args) {
+    USBSerial& serial = USBSerial::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    // Parse: strip led r g b
+    uint32_t strip = 0, led = 0, r = 0, g = 0, b = 0;
+    int parsed = 0;
+    
+    // Simple parsing - extract 5 numbers
+    const char* ptr = args.data();
+    const char* end = ptr + args.size();
+    uint32_t* values[] = {&strip, &led, &r, &g, &b};
+    
+    for (int i = 0; i < 5 && ptr < end; i++) {
+        // Skip whitespace
+        while (ptr < end && (*ptr == ' ' || *ptr == '\t')) ptr++;
+        if (ptr >= end) break;
+        
+        // Parse number
+        uint32_t val = 0;
+        bool found_digit = false;
+        while (ptr < end && *ptr >= '0' && *ptr <= '9') {
+            val = val * 10 + (*ptr - '0');
+            ptr++;
+            found_digit = true;
+        }
+        
+        if (found_digit) {
+            *values[i] = val;
+            parsed++;
+        }
+    }
+    
+    if (parsed != 5) {
+        constexpr std::string_view error_msg = "Error: led_set requires: strip led r g b\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    if (!ws2812.is_led_valid(strip, led)) {
+        constexpr std::string_view error_msg = "Error: Invalid strip or LED index\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    if (r > 255 || g > 255 || b > 255) {
+        constexpr std::string_view error_msg = "Error: RGB values must be 0-255\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    ws2812.set_led(strip, led, r, g, b);
+    ws2812.force_update();
+    
+    char response[64];
+    snprintf(response, sizeof(response), "LED set: strip %lu, led %lu = (%lu,%lu,%lu)\n", 
+             strip, led, r, g, b);
+    serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
+}
+
+void CommandHandler::cmd_led_strip(std::string_view args) {
+    USBSerial& serial = USBSerial::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    // Parse: strip r g b
+    uint32_t strip = 0, r = 0, g = 0, b = 0;
+    int parsed = 0;
+    
+    const char* ptr = args.data();
+    const char* end = ptr + args.size();
+    uint32_t* values[] = {&strip, &r, &g, &b};
+    
+    for (int i = 0; i < 4 && ptr < end; i++) {
+        while (ptr < end && (*ptr == ' ' || *ptr == '\t')) ptr++;
+        if (ptr >= end) break;
+        
+        uint32_t val = 0;
+        bool found_digit = false;
+        while (ptr < end && *ptr >= '0' && *ptr <= '9') {
+            val = val * 10 + (*ptr - '0');
+            ptr++;
+            found_digit = true;
+        }
+        
+        if (found_digit) {
+            *values[i] = val;
+            parsed++;
+        }
+    }
+    
+    if (parsed != 4) {
+        constexpr std::string_view error_msg = "Error: led_strip requires: strip r g b\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    if (!ws2812.is_strip_valid(strip)) {
+        constexpr std::string_view error_msg = "Error: Invalid strip index\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    if (r > 255 || g > 255 || b > 255) {
+        constexpr std::string_view error_msg = "Error: RGB values must be 0-255\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    ws2812.set_strip(strip, RGB(r, g, b));
+    ws2812.force_update();
+    
+    char response[64];
+    snprintf(response, sizeof(response), "Strip %lu set to (%lu,%lu,%lu)\n", strip, r, g, b);
+    serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
+}
+
+void CommandHandler::cmd_led_all(std::string_view args) {
+    USBSerial& serial = USBSerial::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    // Parse: r g b
+    uint32_t r = 0, g = 0, b = 0;
+    int parsed = 0;
+    
+    const char* ptr = args.data();
+    const char* end = ptr + args.size();
+    uint32_t* values[] = {&r, &g, &b};
+    
+    for (int i = 0; i < 3 && ptr < end; i++) {
+        while (ptr < end && (*ptr == ' ' || *ptr == '\t')) ptr++;
+        if (ptr >= end) break;
+        
+        uint32_t val = 0;
+        bool found_digit = false;
+        while (ptr < end && *ptr >= '0' && *ptr <= '9') {
+            val = val * 10 + (*ptr - '0');
+            ptr++;
+            found_digit = true;
+        }
+        
+        if (found_digit) {
+            *values[i] = val;
+            parsed++;
+        }
+    }
+    
+    if (parsed != 3) {
+        constexpr std::string_view error_msg = "Error: led_all requires: r g b\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    if (r > 255 || g > 255 || b > 255) {
+        constexpr std::string_view error_msg = "Error: RGB values must be 0-255\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    ws2812.set_all(RGB(r, g, b));
+    ws2812.force_update();
+    
+    char response[64];
+    snprintf(response, sizeof(response), "All LEDs set to (%lu,%lu,%lu)\n", r, g, b);
+    serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
+}
+
+void CommandHandler::cmd_led_clear(std::string_view args) {
+    USBSerial& serial = USBSerial::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    if (args.empty()) {
+        // Clear all
+        ws2812.clear_all();
+        ws2812.force_update();
+        constexpr std::string_view response = "All LEDs cleared\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(response.data()), response.size());
+    } else {
+        // Parse strip number
+        uint32_t strip = 0;
+        for (char c : args) {
+            if (c >= '0' && c <= '9') {
+                strip = strip * 10 + (c - '0');
+            } else if (c == ' ' || c == '\t') {
+                break;
+            }
+        }
+        
+        if (!ws2812.is_strip_valid(strip)) {
+            constexpr std::string_view error_msg = "Error: Invalid strip index\n";
+            serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+            return;
+        }
+        
+        ws2812.clear_strip(strip);
+        ws2812.force_update();
+        
+        char response[64];
+        snprintf(response, sizeof(response), "Strip %lu cleared\n", strip);
+        serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
+    }
+}
+
+void CommandHandler::cmd_led_animate(std::string_view args) {
+    USBSerial& serial = USBSerial::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    // Parse animation mode and optional speed
+    auto space_pos = args.find(' ');
+    std::string_view mode_str = (space_pos != std::string_view::npos) 
+        ? args.substr(0, space_pos) 
+        : args;
+    
+    AnimationMode mode = AnimationMode::STATIC;
+    if (str_equal_case_insensitive(mode_str, "static")) {
+        mode = AnimationMode::STATIC;
+    } else if (str_equal_case_insensitive(mode_str, "fade")) {
+        mode = AnimationMode::FADE;
+    } else if (str_equal_case_insensitive(mode_str, "rainbow")) {
+        mode = AnimationMode::RAINBOW;
+    } else if (str_equal_case_insensitive(mode_str, "chase")) {
+        mode = AnimationMode::CHASE;
+    } else if (str_equal_case_insensitive(mode_str, "pulse")) {
+        mode = AnimationMode::PULSE;
+    } else if (str_equal_case_insensitive(mode_str, "sparkle")) {
+        mode = AnimationMode::SPARKLE;
+    } else {
+        constexpr std::string_view error_msg = "Error: Invalid animation mode. Use: static, fade, rainbow, chase, pulse, sparkle\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    // Parse optional speed
+    uint32_t speed = 100;  // Default speed
+    if (space_pos != std::string_view::npos) {
+        std::string_view speed_str = args.substr(space_pos + 1);
+        for (char c : speed_str) {
+            if (c >= '0' && c <= '9') {
+                speed = speed * 10 + (c - '0');
+            } else if (c == ' ' || c == '\t') {
+                break;
+            }
+        }
+    }
+    
+    if (mode == AnimationMode::STATIC) {
+        ws2812.stop_animation();
+        constexpr std::string_view response = "Animation stopped\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(response.data()), response.size());
+    } else {
+        ws2812.set_animation(mode, speed);
+        char response[64];
+        snprintf(response, sizeof(response), "Animation set to %.*s (speed: %lums)\n", 
+                 (int)mode_str.size(), mode_str.data(), speed);
+        serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
+    }
+}
+
+void CommandHandler::cmd_led_brightness(std::string_view args) {
+    USBSerial& serial = USBSerial::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    if (args.empty()) {
+        constexpr std::string_view error_msg = "Error: led_brightness requires brightness value (0-100)\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    // Parse brightness percentage
+    uint32_t brightness = 0;
+    for (char c : args) {
+        if (c >= '0' && c <= '9') {
+            brightness = brightness * 10 + (c - '0');
+        } else if (c == ' ' || c == '\t') {
+            break;
+        } else {
+            constexpr std::string_view error_msg = "Error: Invalid brightness format\n";
+            serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+            return;
+        }
+    }
+    
+    if (brightness > 100) {
+        constexpr std::string_view error_msg = "Error: Brightness must be 0-100\n";
+        serial.send_data(reinterpret_cast<const uint8_t*>(error_msg.data()), error_msg.size());
+        return;
+    }
+    
+    ws2812.set_brightness(brightness / 100.0f);
+    
+    char response[64];
+    snprintf(response, sizeof(response), "Brightness set to %lu%%\n", brightness);
+    serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
 }

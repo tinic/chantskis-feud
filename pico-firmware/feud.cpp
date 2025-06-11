@@ -1,5 +1,6 @@
 #include "feud.h"
 #include "usb_serial.h"
+#include "ws2812_controller.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -95,6 +96,13 @@ void Feud::update_timer() {
             time_remaining = 0;
             timer_expired_naturally = true;
             current_state = GameState::IDLE;
+            
+            // Set all LED strips to red when timer expires
+            WS2812Controller& ws2812 = WS2812Controller::instance();
+            ws2812.stop_animation();  // Stop any running animation
+            ws2812.set_all(Colors::RED);
+            ws2812.force_update();
+            
             send_status_directly(); // Send final status update
         } else {
             time_remaining = (timer_duration_ms - elapsed) / 1000; // Convert to seconds
@@ -185,6 +193,14 @@ void Feud::gpio_callback(uint gpio, uint32_t events) {
                 // Then set player state
                 feud_instance->player_a_pressed = true;
                 feud_instance->current_state = GameState::PLAYER_A_PRESSED;
+                
+                // Set Player A LED strips (0 and 1) to cyan
+                WS2812Controller& ws2812 = WS2812Controller::instance();
+                ws2812.stop_animation();  // Stop any running animation
+                ws2812.set_strip(0, Colors::CYAN);
+                ws2812.set_strip(1, Colors::CYAN);
+                ws2812.force_update();
+                
                 // Send final status update with player state
                 feud_instance->send_status_directly();
             }
@@ -200,6 +216,14 @@ void Feud::gpio_callback(uint gpio, uint32_t events) {
                 // Then set player state
                 feud_instance->player_b_pressed = true;
                 feud_instance->current_state = GameState::PLAYER_B_PRESSED;
+                
+                // Set Player B LED strips (2 and 3) to cyan
+                WS2812Controller& ws2812 = WS2812Controller::instance();
+                ws2812.stop_animation();  // Stop any running animation
+                ws2812.set_strip(2, Colors::CYAN);
+                ws2812.set_strip(3, Colors::CYAN);
+                ws2812.force_update();
+                
                 // Send final status update with player state
                 feud_instance->send_status_directly();
             }
@@ -215,6 +239,12 @@ void Feud::start_timer(uint32_t duration_seconds) {
     player_a_pressed = false;
     player_b_pressed = false;
     timer_expired_naturally = false; // Reset expiration flag
+    
+    // Set all LED strips to black when timer starts
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    ws2812.stop_animation();  // Stop any running animation
+    ws2812.clear_all();
+    ws2812.force_update();
     
     // Send initial status immediately
     send_status_directly();
@@ -283,6 +313,13 @@ void Feud::reset_game() {
     player_b_pressed = false;
     timer_expired_naturally = false; // Reset expiration flag
     
+    // Clear all LED strips on reset and restart rainbow animation
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    ws2812.clear_all();
+    ws2812.force_update();
+    // Restart rainbow animation after reset
+    ws2812.set_animation(AnimationMode::RAINBOW, 100);
+    
     // Send reset status update
     send_status_directly();
 }
@@ -305,6 +342,13 @@ void Feud::force_reset() {
     gpio_put(PLAYER_A_LED_PIN, 0);
     gpio_put(PLAYER_B_LED_PIN, 0);
     gpio_put(TIMER_LED_STRIP_PIN, 0);
+    
+    // Clear all LED strips on force reset and restart rainbow animation
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    ws2812.clear_all();
+    ws2812.force_update();
+    // Restart rainbow animation after force reset
+    ws2812.set_animation(AnimationMode::RAINBOW, 100);
     
     // Send reset status update
     send_status_directly();

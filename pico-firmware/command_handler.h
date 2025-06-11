@@ -22,13 +22,19 @@ class CommandHandler {
     static void cmd_resume_timer(std::string_view args);
     static void cmd_reset_game(std::string_view args);
     static void cmd_force_reset(std::string_view args);
+    static void cmd_led_set(std::string_view args);
+    static void cmd_led_strip(std::string_view args);
+    static void cmd_led_all(std::string_view args);
+    static void cmd_led_clear(std::string_view args);
+    static void cmd_led_animate(std::string_view args);
+    static void cmd_led_brightness(std::string_view args);
     
     struct Command {
         std::string_view name;
         CommandFunction handler;
     };
     
-    static constexpr std::array<Command, 9> commands{{
+    static constexpr std::array<Command, 15> commands{{
         {"hello", cmd_hello},
         {"status", cmd_status},
         {"help", cmd_help},
@@ -37,12 +43,18 @@ class CommandHandler {
         {"pause_timer", cmd_pause_timer},
         {"resume_timer", cmd_resume_timer},
         {"reset_game", cmd_reset_game},
-        {"force_reset", cmd_force_reset}
+        {"force_reset", cmd_force_reset},
+        {"led_set", cmd_led_set},
+        {"led_strip", cmd_led_strip},
+        {"led_all", cmd_led_all},
+        {"led_clear", cmd_led_clear},
+        {"led_animate", cmd_led_animate},
+        {"led_brightness", cmd_led_brightness}
     }};
     
     void init();
     
-    [[nodiscard]] constexpr bool str_equal_case_insensitive(std::string_view a, std::string_view b) const noexcept;
+    [[nodiscard]] static constexpr bool str_equal_case_insensitive(std::string_view a, std::string_view b) noexcept;
     [[nodiscard]] std::string_view trim_whitespace(std::string_view str) const noexcept;
     [[nodiscard]] std::optional<std::pair<std::string_view, std::string_view>> parse_command_line(std::string_view line) const noexcept;
     

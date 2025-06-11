@@ -8,6 +8,7 @@
 #include "feud.h"
 #include "usb_serial.h"
 #include "command_handler.h"
+#include "ws2812_controller.h"
 
 // Callback function for when a line is received
 static void on_line_received(std::string_view line) {
@@ -27,8 +28,14 @@ int main() {
     usb_serial.send_line("type 'help' for available commands");
 
     Feud& feud = Feud::instance();
+    WS2812Controller& ws2812 = WS2812Controller::instance();
+    
+    // Set default rainbow animation on startup
+    ws2812.set_animation(AnimationMode::RAINBOW, 100);
+    
     while (1) {
         feud.update();
+        ws2812.update();
         usb_serial.update();
         sleep_ms(10);  // Small delay instead of WFI to ensure regular updates
     }

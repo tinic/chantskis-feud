@@ -35,6 +35,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     feud.cpp
     usb_serial.cpp
     command_handler.cpp
+    ws2812_controller.cpp
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC
@@ -49,6 +50,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     hardware_timer
     hardware_irq
     hardware_dma
+    hardware_pio
+    hardware_clocks
 )
 
 # Enable USB output, disable UART output
