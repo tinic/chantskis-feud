@@ -33,6 +33,8 @@ pico_sdk_init()
 add_executable(${CMAKE_PROJECT_NAME}
     main.cpp
     feud.cpp
+    usb_serial.cpp
+    command_handler.cpp
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC
