@@ -16,16 +16,28 @@ class CommandHandler {
     static void cmd_hello(std::string_view args);
     static void cmd_status(std::string_view args);
     static void cmd_help(std::string_view args);
+    static void cmd_start_timer(std::string_view args);
+    static void cmd_stop_timer(std::string_view args);
+    static void cmd_pause_timer(std::string_view args);
+    static void cmd_resume_timer(std::string_view args);
+    static void cmd_reset_game(std::string_view args);
+    static void cmd_force_reset(std::string_view args);
     
     struct Command {
         std::string_view name;
         CommandFunction handler;
     };
     
-    static constexpr std::array<Command, 3> commands{{
+    static constexpr std::array<Command, 9> commands{{
         {"hello", cmd_hello},
         {"status", cmd_status},
-        {"help", cmd_help}
+        {"help", cmd_help},
+        {"start_timer", cmd_start_timer},
+        {"stop_timer", cmd_stop_timer},
+        {"pause_timer", cmd_pause_timer},
+        {"resume_timer", cmd_resume_timer},
+        {"reset_game", cmd_reset_game},
+        {"force_reset", cmd_force_reset}
     }};
     
     void init();

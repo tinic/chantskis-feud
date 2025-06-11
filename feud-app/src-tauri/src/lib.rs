@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serialport::{available_ports, SerialPortType};
-use std::sync::Mutex;
+use std::sync::Arc;
 use std::time::Duration;
 use tauri::State;
 use std::io::Write;
+use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct SerialPortInfo {
@@ -15,7 +16,7 @@ struct SerialConnection {
     port: Option<Box<dyn serialport::SerialPort + Send>>,
 }
 
-type SerialState = Mutex<SerialConnection>;
+type SerialState = Arc<Mutex<SerialConnection>>;
 
 #[tauri::command]
 fn list_serial_ports() -> Result<Vec<SerialPortInfo>, String> {
@@ -47,8 +48,8 @@ fn list_serial_ports() -> Result<Vec<SerialPortInfo>, String> {
 }
 
 #[tauri::command]
-fn connect_serial(port_path: String, state: State<SerialState>) -> Result<String, String> {
-    let mut connection = state.lock().unwrap();
+async fn connect_serial(port_path: String, state: State<'_, SerialState>) -> Result<String, String> {
+    let mut connection = state.lock().await;
     
     // Close existing connection if any
     if connection.port.is_some() {
@@ -69,19 +70,21 @@ fn connect_serial(port_path: String, state: State<SerialState>) -> Result<String
 }
 
 #[tauri::command]
-fn disconnect_serial(state: State<SerialState>) -> Result<String, String> {
-    let mut connection = state.lock().unwrap();
+async fn disconnect_serial(state: State<'_, SerialState>) -> Result<String, String> {
+    let mut connection = state.lock().await;
     connection.port = None;
     Ok("Disconnected".to_string())
 }
 
 #[tauri::command]
-fn send_serial_data(data: Vec<u8>, state: State<SerialState>) -> Result<(), String> {
-    let mut connection = state.lock().unwrap();
+async fn send_serial_data(data: Vec<u8>, state: State<'_, SerialState>) -> Result<(), String> {
+    let mut connection = state.lock().await;
     
     if let Some(ref mut port) = connection.port {
         port.write_all(&data)
             .map_err(|e| format!("Failed to send data: {}", e))?;
+        port.flush()
+            .map_err(|e| format!("Failed to flush data: {}", e))?;
         Ok(())
     } else {
         Err("Not connected to any serial port".to_string())
@@ -89,10 +92,20 @@ fn send_serial_data(data: Vec<u8>, state: State<SerialState>) -> Result<(), Stri
 }
 
 #[tauri::command]
-fn read_serial_data(state: State<SerialState>) -> Result<Vec<u8>, String> {
-    let mut connection = state.lock().unwrap();
+async fn read_serial_data(state: State<'_, SerialState>) -> Result<Vec<u8>, String> {
+    // Try to acquire the lock with a timeout to avoid blocking other operations
+    let connection_result = tokio::time::timeout(
+        Duration::from_millis(50),
+        state.lock()
+    ).await;
+    
+    let mut connection = match connection_result {
+        Ok(conn) => conn,
+        Err(_) => return Ok(vec![]), // Return empty if we can't get lock quickly
+    };
     
     if let Some(ref mut port) = connection.port {
+        // Perform a non-blocking read
         let mut buffer = vec![0; 1024];
         match port.read(&mut buffer) {
             Ok(n) => {
@@ -116,7 +129,7 @@ fn read_serial_data(state: State<SerialState>) -> Result<Vec<u8>, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(SerialState::new(SerialConnection { port: None }))
+        .manage(Arc::new(Mutex::new(SerialConnection { port: None })))
         .invoke_handler(tauri::generate_handler![
             list_serial_ports,
             connect_serial,

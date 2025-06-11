@@ -23,13 +23,13 @@ int main() {
     
     sleep_ms(1000);
     
-    usb_serial.send_line("Chantskis Feud USB Serial Interface");
-    usb_serial.send_line("Type 'help' for available commands");
+    usb_serial.send_line("chantskis feud usb serial interface");
+    usb_serial.send_line("type 'help' for available commands");
 
     Feud& feud = Feud::instance();
     while (1) {
         feud.update();
         usb_serial.update();
-        __wfi();
+        sleep_ms(10);  // Small delay instead of WFI to ensure regular updates
     }
 }
