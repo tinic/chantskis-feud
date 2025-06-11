@@ -421,9 +421,6 @@ onUnmounted(() => {
 <template>
   <Toolbar class="main-toolbar">
     <template #start>
-      <span class="toolbar-title">Chantskis Feud</span>
-    </template>
-    <template #center>
       <div class="game-status" v-if="isConnected">
         <!-- Timer Display -->
         <div class="timer-display">
@@ -452,6 +449,8 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+    </template>
+    <template #center>
     </template>
     <template #end>
       <!-- Volume Control -->
