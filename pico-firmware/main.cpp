@@ -17,23 +17,16 @@ static void on_line_received(std::string_view line) {
 int main() {
     // Initialize stdio (required for USB)
     stdio_init_all();
-    
-    // Initialize Feud game logic
-    Feud& feud = Feud::instance();
-    
-    // Initialize USB Serial
+
     USBSerial& usb_serial = USBSerial::instance();
-    
-    // Set the line received callback
     usb_serial.set_line_callback(on_line_received);
     
-    // Wait a bit for USB to enumerate
     sleep_ms(1000);
     
-    // Send welcome message
     usb_serial.send_line("Chantskis Feud USB Serial Interface");
     usb_serial.send_line("Type 'help' for available commands");
 
+    Feud& feud = Feud::instance();
     while (1) {
         feud.update();
         usb_serial.update();
