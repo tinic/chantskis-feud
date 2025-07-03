@@ -10,10 +10,10 @@
 #include "pico/stdlib.h"
 
 // GPIO pin definitions
-constexpr uint PLAYER_A_BUTTON_PIN = 2;
-constexpr uint PLAYER_B_BUTTON_PIN = 3;
-constexpr uint PLAYER_A_LED_PIN = 4;
-constexpr uint PLAYER_B_LED_PIN = 5;
+constexpr uint PLAYER_A_BUTTON_PIN = 29;
+constexpr uint PLAYER_B_BUTTON_PIN = 28;
+constexpr uint PLAYER_A_LED_PIN = 2;
+constexpr uint PLAYER_B_LED_PIN = 3;  // Pin 8 is used for level shifter enable
 
 enum class GameState {
     IDLE,
@@ -81,10 +81,12 @@ class Feud {
     bool player_b_pressed = false;
     bool timer_expired_naturally = false; // Flag to track natural timer expiration
     
+volatile bool debounce_a_pending = false;
+volatile bool debounce_b_pending = false;
     // Debouncing
     uint32_t last_button_a_time = 0;
     uint32_t last_button_b_time = 0;
-    static constexpr uint32_t DEBOUNCE_MS = 200;
+    static constexpr uint32_t DEBOUNCE_MS = 50;
     
     // Message buffer for asynchronous communication
     CircularBuffer<GameMessage, 8> message_buffer;

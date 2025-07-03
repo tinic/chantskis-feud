@@ -12,7 +12,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD waveshare_rp2040_zero CACHE STRING "Board type")
 
 cmake_minimum_required(VERSION 3.13...3.27)
 
@@ -36,6 +36,7 @@ add_executable(${CMAKE_PROJECT_NAME}
     usb_serial.cpp
     command_handler.cpp
     ws2812_controller.cpp
+    ws2812_led.cpp
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC
@@ -59,7 +60,7 @@ pico_enable_stdio_usb(${CMAKE_PROJECT_NAME} 1)
 pico_enable_stdio_uart(${CMAKE_PROJECT_NAME} 0)
 
 pico_add_uf2_output(${CMAKE_PROJECT_NAME})
-pico_generate_pio_header(${CMAKE_PROJECT_NAME})
+pico_generate_pio_header(${CMAKE_PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio)
 pico_add_extra_outputs(${CMAKE_PROJECT_NAME})
 
 execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_SHORT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)

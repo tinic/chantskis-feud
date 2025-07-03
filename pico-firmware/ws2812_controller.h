@@ -10,15 +10,13 @@
 #include "pico/stdlib.h"
 
 // WS2812B Configuration
-constexpr uint NUM_STRIPS = 4;
+constexpr uint NUM_STRIPS = 2;
 constexpr uint LEDS_PER_STRIP = 60;  // Adjust based on your actual strip length
 constexpr uint TOTAL_LEDS = NUM_STRIPS * LEDS_PER_STRIP;
 
 // GPIO pin definitions for WS2812B strips
-constexpr uint WS2812_PIN_STRIP_0 = 6;   // First strip
-constexpr uint WS2812_PIN_STRIP_1 = 7;   // Second strip
-constexpr uint WS2812_PIN_STRIP_2 = 8;   // Third strip
-constexpr uint WS2812_PIN_STRIP_3 = 9;   // Fourth strip
+constexpr uint WS2812_PIN_STRIP_0 = 7;   // First strip
+constexpr uint WS2812_PIN_STRIP_1 = 6;   // Second strip (pin 7 used for PLAYER_B_LED, pin 8 for level shifter)
 
 // Timing constants for WS2812B (in nanoseconds)
 constexpr uint32_t WS2812_T0H_NS = 400;
@@ -74,7 +72,7 @@ private:
     float brightness = 1.0f;
     
     // Update tracking
-    bool buffers_dirty[NUM_STRIPS] = {false, false, false, false};
+    bool buffers_dirty[NUM_STRIPS] = {false, false};
     uint32_t last_update_time = 0;
     static constexpr uint32_t UPDATE_INTERVAL_MS = 16;  // ~60 FPS
     
@@ -114,7 +112,6 @@ public:
     // Animation control
     void set_animation(AnimationMode mode, uint32_t speed_ms = 100);
     void set_animation_colors(const RGB& primary, const RGB& secondary);
-    void stop_animation();
     
     // Status getters
     AnimationMode get_animation_mode() const { return current_animation; }
@@ -127,8 +124,6 @@ public:
         return is_strip_valid(strip) && led_index < LEDS_PER_STRIP; 
     }
     
-    // Force immediate update (bypasses frame rate limiting)
-    void force_update();
 };
 
 // Predefined colors for convenience

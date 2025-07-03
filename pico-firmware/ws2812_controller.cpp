@@ -61,9 +61,7 @@ void WS2812Controller::init_pio() {
     // Configure GPIO pins and state machines for each strip
     const uint pins[NUM_STRIPS] = {
         WS2812_PIN_STRIP_0,
-        WS2812_PIN_STRIP_1,
-        WS2812_PIN_STRIP_2,
-        WS2812_PIN_STRIP_3
+        WS2812_PIN_STRIP_1
     };
     
     for (uint i = 0; i < NUM_STRIPS; i++) {
@@ -72,7 +70,9 @@ void WS2812Controller::init_pio() {
         
         // Configure the GPIO pin
         gpio_init(pins[i]);
-        pio_gpio_init(pio, pins[i]);
+        gpio_set_dir(pins[i], GPIO_OUT);  // Set as output
+        gpio_put(pins[i], 0);             // Set initial state to low
+        pio_gpio_init(pio, pins[i]);      // Give control to PIO
         
         // Configure the state machine
         pio_sm_config config = pio_get_default_sm_config();
@@ -141,22 +141,18 @@ void WS2812Controller::init_dma() {
 void WS2812Controller::update() {
     uint32_t current_time = to_ms_since_boot(get_absolute_time());
     
-    // Update animations if active
-    if (current_animation != AnimationMode::STATIC) {
-        update_animations();
-    }
+    // Always update animations
+    update_animations();
     
     // Check if it's time for a frame update
     if ((current_time - last_update_time) >= UPDATE_INTERVAL_MS) {
         last_update_time = current_time;
         
-        // Update any dirty buffers
+        // Always update all buffers
         for (uint i = 0; i < NUM_STRIPS; i++) {
-            if (buffers_dirty[i]) {
-                prepare_dma_buffer(i);
-                trigger_dma_transfer(i);
-                buffers_dirty[i] = false;
-            }
+            prepare_dma_buffer(i);
+            trigger_dma_transfer(i);
+            buffers_dirty[i] = false;
         }
     }
 }
@@ -262,9 +258,6 @@ void WS2812Controller::set_animation_colors(const RGB& primary, const RGB& secon
     secondary_color = secondary;
 }
 
-void WS2812Controller::stop_animation() {
-    current_animation = AnimationMode::STATIC;
-}
 
 RGB WS2812Controller::get_led(uint strip, uint led_index) const {
     if (!is_led_valid(strip, led_index)) return RGB(0, 0, 0);
@@ -284,6 +277,12 @@ void WS2812Controller::update_animations() {
     uint32_t elapsed_ms = current_time - animation_start_time;
     
     switch (current_animation) {
+        case AnimationMode::STATIC:
+            // For STATIC mode, mark all buffers as dirty to force continuous updates
+            for (uint i = 0; i < NUM_STRIPS; i++) {
+                buffers_dirty[i] = true;
+            }
+            break;
         case AnimationMode::RAINBOW:
             animate_rainbow(elapsed_ms);
             break;
@@ -411,14 +410,3 @@ void WS2812Controller::animate_fade(uint32_t elapsed_ms) {
     set_all(faded_color);
 }
 
-void WS2812Controller::force_update() {
-    // Prepare and trigger all dirty buffers immediately
-    for (uint i = 0; i < NUM_STRIPS; i++) {
-        if (buffers_dirty[i]) {
-            prepare_dma_buffer(i);
-            trigger_dma_transfer(i);
-            buffers_dirty[i] = false;
-        }
-    }
-    last_update_time = to_ms_since_boot(get_absolute_time());
-}

@@ -321,7 +321,7 @@ void CommandHandler::cmd_led_set(std::string_view args) {
     }
     
     ws2812.set_led(strip, led, r, g, b);
-    ws2812.force_update();
+    ws2812.set_animation(AnimationMode::STATIC);
     
     char response[64];
     snprintf(response, sizeof(response), "LED set: strip %lu, led %lu = (%lu,%lu,%lu)\n", 
@@ -378,7 +378,7 @@ void CommandHandler::cmd_led_strip(std::string_view args) {
     }
     
     ws2812.set_strip(strip, RGB(r, g, b));
-    ws2812.force_update();
+    ws2812.set_animation(AnimationMode::STATIC);
     
     char response[64];
     snprintf(response, sizeof(response), "Strip %lu set to (%lu,%lu,%lu)\n", strip, r, g, b);
@@ -428,7 +428,7 @@ void CommandHandler::cmd_led_all(std::string_view args) {
     }
     
     ws2812.set_all(RGB(r, g, b));
-    ws2812.force_update();
+    ws2812.set_animation(AnimationMode::STATIC);
     
     char response[64];
     snprintf(response, sizeof(response), "All LEDs set to (%lu,%lu,%lu)\n", r, g, b);
@@ -442,7 +442,7 @@ void CommandHandler::cmd_led_clear(std::string_view args) {
     if (args.empty()) {
         // Clear all
         ws2812.clear_all();
-        ws2812.force_update();
+        ws2812.set_animation(AnimationMode::STATIC);
         constexpr std::string_view response = "All LEDs cleared\n";
         serial.send_data(reinterpret_cast<const uint8_t*>(response.data()), response.size());
     } else {
@@ -463,7 +463,7 @@ void CommandHandler::cmd_led_clear(std::string_view args) {
         }
         
         ws2812.clear_strip(strip);
-        ws2812.force_update();
+        ws2812.set_animation(AnimationMode::STATIC);
         
         char response[64];
         snprintf(response, sizeof(response), "Strip %lu cleared\n", strip);
@@ -513,17 +513,11 @@ void CommandHandler::cmd_led_animate(std::string_view args) {
         }
     }
     
-    if (mode == AnimationMode::STATIC) {
-        ws2812.stop_animation();
-        constexpr std::string_view response = "Animation stopped\n";
-        serial.send_data(reinterpret_cast<const uint8_t*>(response.data()), response.size());
-    } else {
-        ws2812.set_animation(mode, speed);
-        char response[64];
-        snprintf(response, sizeof(response), "Animation set to %.*s (speed: %lums)\n", 
-                 (int)mode_str.size(), mode_str.data(), speed);
-        serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
-    }
+    ws2812.set_animation(mode, speed);
+    char response[64];
+    snprintf(response, sizeof(response), "Animation set to %.*s (speed: %lums)\n", 
+             (int)mode_str.size(), mode_str.data(), speed);
+    serial.send_data(reinterpret_cast<const uint8_t*>(response), strlen(response));
 }
 
 void CommandHandler::cmd_led_brightness(std::string_view args) {
