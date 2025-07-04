@@ -40,12 +40,24 @@ Triggered when you push a version tag (e.g., `v0.1.0`):
 
 ## Release Process
 
-1. Update version in `feud-app/package.json` and `feud-app/src-tauri/tauri.conf.json`
-2. Commit your changes
-3. Run `./scripts/publish-release.sh`
-4. Choose to create a GitHub release when prompted
-5. Wait for GitHub Actions to build all platforms
-6. Go to GitHub releases page and publish the draft release
+### Automatic Releases (on push to main)
+Every push to the main branch automatically:
+1. Generates a version based on: `YYYYMMDD.commits.hash`
+2. Builds the app for all platforms
+3. Creates a draft GitHub release
+
+### Manual Release
+1. Run `./scripts/publish-release.sh` 
+2. The script will auto-generate a version based on git history
+3. Choose to create a GitHub release when prompted
+4. Wait for GitHub Actions to build all platforms
+5. Go to GitHub releases page and publish the draft release
+
+### Version Format
+Versions are automatically generated as: `20241204.123.abc1234`
+- `20241204` - Commit date (YYYYMMDD)
+- `123` - Total commit count
+- `abc1234` - Short git hash
 
 ## Requirements
 

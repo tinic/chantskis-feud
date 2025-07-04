@@ -2,8 +2,7 @@ name: Release Tauri App
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -56,13 +55,21 @@ jobs:
           cd feud-app
           yarn install
 
+      - name: Set version
+        id: version
+        run: |
+          chmod +x scripts/auto-version.sh
+          VERSION=$(./scripts/auto-version.sh --quiet)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          ./scripts/auto-version.sh
+
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Chantskis Feud ${{ github.ref_name }}'
+          tagName: v${{ steps.version.outputs.VERSION }}
+          releaseName: 'Chantskis Feud v${{ steps.version.outputs.VERSION }}'
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: true
           prerelease: false
@@ -74,12 +81,23 @@ jobs:
       contents: write
     runs-on: ubuntu-22.04
     needs: release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Get version
+        id: version
+        run: |
+          chmod +x scripts/auto-version.sh
+          VERSION=$(./scripts/auto-version.sh --quiet)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+      
       - name: Publish release
         uses: softprops/action-gh-release@v1
         with:
           draft: false
-          tag_name: ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

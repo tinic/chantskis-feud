@@ -14,9 +14,11 @@ if [ ! -f "feud-app/package.json" ]; then
     exit 1
 fi
 
-# Get version from package.json
-VERSION=$(node -p "require('./feud-app/package.json').version")
-echo "📦 Building version: $VERSION"
+# Auto-generate version
+chmod +x scripts/auto-version.sh
+VERSION=$(./scripts/auto-version.sh --quiet)
+./scripts/auto-version.sh
+echo ""
 
 # Check for uncommitted changes
 if ! git diff-index --quiet HEAD --; then
