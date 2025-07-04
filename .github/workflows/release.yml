@@ -71,7 +71,7 @@ jobs:
         run: |
           VERSION=$(./scripts/auto-version.sh --quiet)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          ./scripts/auto-version.sh
+          ./scripts/auto-version.sh --no-metadata
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0

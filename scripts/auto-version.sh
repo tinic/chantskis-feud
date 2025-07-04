@@ -42,14 +42,24 @@ echo "📝 Updating feud-app/package.json..."
 cd feud-app
 npm version "$VERSION" --no-git-tag-version --allow-same-version
 
-# Update tauri.conf.json with full version (including hash)
+# Update tauri.conf.json
 echo "📝 Updating feud-app/src-tauri/tauri.conf.json..."
 cd src-tauri
+
+# Check if we're building on Windows or if --no-metadata flag is passed
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]] || [[ "$1" == "--no-metadata" ]]; then
+    # Windows MSI doesn't support build metadata, use plain semver
+    TAURI_VERSION="$VERSION"
+else
+    # Other platforms can use full version with hash
+    TAURI_VERSION="$FULL_VERSION"
+fi
+
 # Use Node.js to update the JSON file to preserve formatting
 node -e "
 const fs = require('fs');
 const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
-config.version = '$FULL_VERSION';
+config.version = '$TAURI_VERSION';
 fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
 "
 
@@ -68,5 +78,5 @@ cd ../..
 
 echo "✅ Version updated:"
 echo "   package.json: $VERSION (semver compliant)"
-echo "   tauri.conf.json: $FULL_VERSION (includes git hash)"
+echo "   tauri.conf.json: $TAURI_VERSION"
 echo "   Cargo.toml: $VERSION (semver compliant)"
