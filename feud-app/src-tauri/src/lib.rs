@@ -43,7 +43,7 @@ fn list_serial_ports() -> Result<Vec<SerialPortInfo>, String> {
                 .collect();
             Ok(port_list)
         }
-        Err(e) => Err(format!("Failed to list serial ports: {}", e)),
+        Err(e) => Err(format!("Failed to list serial ports: {e}")),
     }
 }
 
@@ -63,9 +63,9 @@ async fn connect_serial(port_path: String, state: State<'_, SerialState>) -> Res
     {
         Ok(port) => {
             connection.port = Some(port);
-            Ok(format!("Connected to {}", port_path))
+            Ok(format!("Connected to {port_path}"))
         }
-        Err(e) => Err(format!("Failed to connect: {}", e)),
+        Err(e) => Err(format!("Failed to connect: {e}")),
     }
 }
 
@@ -82,9 +82,9 @@ async fn send_serial_data(data: Vec<u8>, state: State<'_, SerialState>) -> Resul
     
     if let Some(ref mut port) = connection.port {
         port.write_all(&data)
-            .map_err(|e| format!("Failed to send data: {}", e))?;
+            .map_err(|e| format!("Failed to send data: {e}"))?;
         port.flush()
-            .map_err(|e| format!("Failed to flush data: {}", e))?;
+            .map_err(|e| format!("Failed to flush data: {e}"))?;
         Ok(())
     } else {
         Err("Not connected to any serial port".to_string())
@@ -116,7 +116,7 @@ async fn read_serial_data(state: State<'_, SerialState>) -> Result<Vec<u8>, Stri
                 if e.kind() == std::io::ErrorKind::TimedOut {
                     Ok(vec![])
                 } else {
-                    Err(format!("Failed to read data: {}", e))
+                    Err(format!("Failed to read data: {e}"))
                 }
             }
         }
