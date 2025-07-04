@@ -10,10 +10,10 @@
 #include "pico/stdlib.h"
 
 // GPIO pin definitions
-constexpr uint PLAYER_A_BUTTON_PIN = 29;
-constexpr uint PLAYER_B_BUTTON_PIN = 28;
-constexpr uint PLAYER_A_LED_PIN = 2;
-constexpr uint PLAYER_B_LED_PIN = 3;  // Pin 8 is used for level shifter enable
+constexpr uint PLAYER_A_BUTTON_PIN = 15;
+constexpr uint PLAYER_B_BUTTON_PIN = 14;
+constexpr uint PLAYER_A_LED_PIN = 11;
+constexpr uint PLAYER_B_LED_PIN = 10;  // Pin 8 is used for level shifter enable
 
 enum class GameState {
     IDLE,
@@ -86,12 +86,12 @@ volatile bool debounce_b_pending = false;
     // Debouncing
     uint32_t last_button_a_time = 0;
     uint32_t last_button_b_time = 0;
-    static constexpr uint32_t DEBOUNCE_MS = 50;
+    static constexpr uint32_t DEBOUNCE_MS = 25;
     
     // Message buffer for asynchronous communication
     CircularBuffer<GameMessage, 8> message_buffer;
     uint32_t last_status_time = 0;
-    static constexpr uint32_t STATUS_INTERVAL_MS = 100;
+    static constexpr uint32_t STATUS_INTERVAL_MS = 50;
     
     void btn_gpio_init();
     void led_init();

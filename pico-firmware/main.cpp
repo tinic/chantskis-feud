@@ -40,7 +40,7 @@ int main() {
     WS2812Controller& ws2812 = WS2812Controller::instance();
     
     // Set default rainbow animation on startup
-    ws2812.set_animation(AnimationMode::RAINBOW, 10);
+    ws2812.set_animation(AnimationMode::RAINBOW, 50);
 
     WS2812Led::instance().set_red();
     

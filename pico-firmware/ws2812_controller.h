@@ -110,7 +110,7 @@ public:
     void set_gradient(uint strip, uint start_index, uint count, const RGB& start_color, const RGB& end_color);
     
     // Animation control
-    void set_animation(AnimationMode mode, uint32_t speed_ms = 100);
+    void set_animation(AnimationMode mode, uint32_t speed_ms = 10);
     void set_animation_colors(const RGB& primary, const RGB& secondary);
     
     // Status getters

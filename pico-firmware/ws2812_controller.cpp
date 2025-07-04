@@ -91,7 +91,7 @@ void WS2812Controller::init_pio() {
         
         // Calculate clock divider for correct timing
         // WS2812B bit period = 1.25us, we have 5 instructions per bit
-        float div = clock_get_hz(clk_sys) / (800000 * 5);  // 800kHz * 5 instructions
+        float div = clock_get_hz(clk_sys) / (800000 * 6);  // 800kHz * 5 instructions
         sm_config_set_clkdiv(&config, div);
         
         // Set wrap points

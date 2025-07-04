@@ -143,13 +143,13 @@ void Feud::update_leds() {
             break;
             
         case GameState::PLAYER_A_PRESSED:
-            gpio_put(PLAYER_A_LED_PIN, 1);
+            gpio_put(PLAYER_A_LED_PIN, 0);
             gpio_put(PLAYER_B_LED_PIN, 0);
             break;
             
         case GameState::PLAYER_B_PRESSED:
             gpio_put(PLAYER_A_LED_PIN, 0);
-            gpio_put(PLAYER_B_LED_PIN, 1);
+            gpio_put(PLAYER_B_LED_PIN, 0);
             break;
     }
 }
@@ -191,8 +191,8 @@ void Feud::gpio_callback(uint gpio, uint32_t events) {
 
             WS2812Controller& ws = WS2812Controller::instance();
             ws.set_animation(AnimationMode::STATIC);
-            ws.set_strip(0, Colors::BLACK);
-            ws.set_strip(1, Colors::RED);
+            ws.set_strip(0, Colors::YELLOW);
+            ws.set_strip(1, Colors::BLACK);
             ws.update();
 
             feud_instance->send_status_directly();
@@ -212,8 +212,8 @@ void Feud::gpio_callback(uint gpio, uint32_t events) {
 
             WS2812Controller& ws = WS2812Controller::instance();
             ws.set_animation(AnimationMode::STATIC);
-            ws.set_strip(0, Colors::RED);
-            ws.set_strip(1, Colors::BLACK);
+            ws.set_strip(0, Colors::BLACK);
+            ws.set_strip(1, Colors::YELLOW);
             ws.update();
 
             feud_instance->send_status_directly();
@@ -246,6 +246,12 @@ void Feud::stop_timer() {
     time_remaining = 0;
     paused_time_remaining = 0;
     timer_expired_naturally = false; // Ensure manual stop doesn't trigger expiration
+
+    WS2812Controller& ws = WS2812Controller::instance();
+    ws.set_animation(AnimationMode::STATIC);
+    ws.set_strip(0, Colors::BLACK);
+    ws.set_strip(1, Colors::BLACK);
+    ws.update();
     
     // Send final status update
     send_status_directly();
@@ -265,7 +271,13 @@ void Feud::pause_timer() {
         
         current_state = GameState::TIMER_PAUSED;
         time_remaining = paused_time_remaining;
-        
+
+        WS2812Controller& ws = WS2812Controller::instance();
+        ws.set_animation(AnimationMode::STATIC);
+        ws.set_strip(0, Colors::BLACK);
+        ws.set_strip(1, Colors::BLACK);
+        ws.update();
+
         // Send status update
         send_status_directly();
     }
@@ -287,6 +299,12 @@ void Feud::resume_timer() {
         // Clear player pressed states when resuming
         player_a_pressed = false;
         player_b_pressed = false;
+
+        WS2812Controller& ws = WS2812Controller::instance();
+        ws.set_animation(AnimationMode::STATIC);
+        ws.set_strip(0, Colors::BLACK);
+        ws.set_strip(1, Colors::BLACK);
+        ws.update();
         
         // Send status update
         send_status_directly();
@@ -308,7 +326,7 @@ void Feud::reset_game() {
     ws2812.clear_all();
     ws2812.update();
     // Restart rainbow animation after reset
-    ws2812.set_animation(AnimationMode::RAINBOW, 100);
+    ws2812.set_animation(AnimationMode::RAINBOW, 50);
     
     // Send reset status update
     send_status_directly();
@@ -337,7 +355,7 @@ void Feud::force_reset() {
     ws2812.clear_all();
     ws2812.update();
     // Restart rainbow animation after force reset
-    ws2812.set_animation(AnimationMode::RAINBOW, 100);
+    ws2812.set_animation(AnimationMode::RAINBOW, 50);
     
     // Send reset status update
     send_status_directly();
