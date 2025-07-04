@@ -10,10 +10,27 @@ COMMIT_COUNT=$(git rev-list --count HEAD)
 SHORT_SHA=$(git rev-parse --short HEAD)
 COMMIT_DATE=$(git show -s --format=%cd --date=format:'%Y%m%d' HEAD)
 
-# Generate version as semver: 0.YYYYMMDD.commits
-# We use 0 as major version to indicate pre-release
-# The commit hash will be added as build metadata
-VERSION="0.${COMMIT_DATE}.${COMMIT_COUNT}"
+# Generate version as semver
+# For Windows MSI compatibility, we need to keep numbers under limits:
+# Major: 0-255, Minor: 0-255, Patch: 0-65535
+
+# Extract year's last 2 digits, month, and day
+YEAR_SHORT=$(echo $COMMIT_DATE | cut -c3-4)
+MONTH=$(echo $COMMIT_DATE | cut -c5-6)
+DAY=$(echo $COMMIT_DATE | cut -c7-8)
+
+# Create a Windows-compatible version: YY.M.DDCC
+# Where YY=year, M=month (1-12), DD=day, CC=commit count
+# Remove leading zeros from month
+MONTH_NUM=$((10#$MONTH))
+
+# For patch number, we need to ensure it's under 65535
+# Format: DCCCC where D is day (1-31) and CCCC is commit count
+# This gives us up to 9999 commits per day, total max: 39999 < 65535
+PATCH=$((${DAY#0} * 1000 + $COMMIT_COUNT))
+
+# Standard version for all platforms
+VERSION="${YEAR_SHORT}.${MONTH_NUM}.${PATCH}"
 FULL_VERSION="${VERSION}+${SHORT_SHA}"
 
 # Output just the version if --quiet flag is used
