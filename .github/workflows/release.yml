@@ -55,10 +55,20 @@ jobs:
           cd feud-app
           yarn install
 
-      - name: Set version
-        id: version
+      - name: Set version (Unix)
+        id: version-unix
+        if: runner.os != 'Windows'
         run: |
           chmod +x scripts/auto-version.sh
+          VERSION=$(./scripts/auto-version.sh --quiet)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          ./scripts/auto-version.sh
+
+      - name: Set version (Windows)
+        id: version-windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
           VERSION=$(./scripts/auto-version.sh --quiet)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           ./scripts/auto-version.sh
@@ -68,8 +78,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v${{ steps.version.outputs.VERSION }}
-          releaseName: 'Chantskis Feud v${{ steps.version.outputs.VERSION }}'
+          tagName: v${{ steps.version-unix.outputs.VERSION || steps.version-windows.outputs.VERSION }}
+          releaseName: 'Chantskis Feud v${{ steps.version-unix.outputs.VERSION || steps.version-windows.outputs.VERSION }}'
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: true
           prerelease: false
@@ -89,8 +99,11 @@ jobs:
         
       - name: Get version
         id: version
+        shell: bash
         run: |
-          chmod +x scripts/auto-version.sh
+          if [[ "$RUNNER_OS" != "Windows" ]]; then
+            chmod +x scripts/auto-version.sh
+          fi
           VERSION=$(./scripts/auto-version.sh --quiet)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       
