@@ -54,10 +54,13 @@ Every push to the main branch automatically:
 5. Go to GitHub releases page and publish the draft release
 
 ### Version Format
-Versions are automatically generated as: `20241204.123.abc1234`
-- `20241204` - Commit date (YYYYMMDD)
-- `123` - Total commit count
-- `abc1234` - Short git hash
+Versions are automatically generated in semver format: `0.YYYYMMDD.commits+hash`
+- `0` - Major version (always 0 for auto-generated versions)
+- `YYYYMMDD` - Commit date (e.g., 20250703)
+- `commits` - Total commit count (e.g., 17)
+- `+hash` - Git short hash as build metadata (e.g., +3d2401f)
+
+Example: `0.20250703.17+3d2401f`
 
 ## Requirements
 
