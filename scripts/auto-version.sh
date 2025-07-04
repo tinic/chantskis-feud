@@ -53,8 +53,20 @@ config.version = '$FULL_VERSION';
 fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
 "
 
+# Update Cargo.toml version
+echo "📝 Updating feud-app/src-tauri/Cargo.toml..."
+# Use sed to update the version line in Cargo.toml
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS sed requires -i ''
+    sed -i '' "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+else
+    # Linux sed
+    sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+fi
+
 cd ../..
 
 echo "✅ Version updated:"
 echo "   package.json: $VERSION (semver compliant)"
 echo "   tauri.conf.json: $FULL_VERSION (includes git hash)"
+echo "   Cargo.toml: $VERSION (semver compliant)"
