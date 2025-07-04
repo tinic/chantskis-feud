@@ -138,19 +138,21 @@ void WS2812Controller::init_dma() {
     }
 }
 
-void WS2812Controller::update() {
+void WS2812Controller::update(bool force) {
     uint32_t current_time = to_ms_since_boot(get_absolute_time());
     
     // Always update animations
     update_animations();
     
     // Check if it's time for a frame update
-    if ((current_time - last_update_time) >= UPDATE_INTERVAL_MS) {
+    if (force || (current_time - last_update_time) >= UPDATE_INTERVAL_MS) {
         last_update_time = current_time;
         
         // Always update all buffers
         for (uint i = 0; i < NUM_STRIPS; i++) {
             prepare_dma_buffer(i);
+        }
+        for (uint i = 0; i < NUM_STRIPS; i++) {
             trigger_dma_transfer(i);
             buffers_dirty[i] = false;
         }

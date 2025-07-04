@@ -94,7 +94,7 @@ private:
     
 public:
     static WS2812Controller& instance();
-    void update();
+    void update(bool force = false);
     
     // Basic LED control
     void set_led(uint strip, uint led_index, const RGB& color);

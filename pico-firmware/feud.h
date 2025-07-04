@@ -110,7 +110,7 @@ volatile bool debounce_b_pending = false;
     // Game control methods
     void start_timer(uint32_t duration_seconds);
     void stop_timer();
-    void pause_timer();
+    void pause_timer(bool noupdate = false);
     void resume_timer();
     void reset_game();
     void force_reset(); // Complete system reset
